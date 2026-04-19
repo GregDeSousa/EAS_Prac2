@@ -19,6 +19,7 @@ end entity ram_256_byte;
 architecture ram_arch of ram_256_byte is
 		component memory_chip is
 			port(
+				clk:			in  std_logic;
 				row: 			in  std_logic_vector(2 downto 0);
 				col: 			in  std_logic_vector(2 downto 0);
 				bit_in:  	in  std_logic;
@@ -42,6 +43,7 @@ architecture ram_arch of ram_256_byte is
 		 banks: for b in 0 to 3 generate
 			  bits: for i in 0 to 7 generate
 					signal write_en : std_logic;
+					signal actual_bit_in : std_logic;
 			  begin
 					write_en <= '1' when (bank_sel = std_logic_vector(to_unsigned(b, 2))) and (
 												  full_word_wr = '1' or
@@ -49,18 +51,21 @@ architecture ram_arch of ram_256_byte is
 												  (high_nib_wr = '1' and i > 3)
 											 ) else '0';
 
+					actual_bit_in <= data_in(i - 4) when (high_nib_wr = '1' and i > 3) else data_in(i);
+
 					chip_inst: memory_chip
 						 port map (
+							  clk     => clk,
 							  row     => row_sel,
 							  col     => col_sel,
-							  bit_in  => data_in(i),
+							  bit_in  => actual_bit_in,
 							  wr_en   => write_en,  
 							  bit_out => memory_outputs(b, i)
 						 );
 			  end generate bits; 
 		 end generate banks;   
 	 
-	process(bank_sel, memory_outputs, high_nib_rd,low_nib_rd)
+	process(bank_sel, memory_outputs, high_nib_rd, low_nib_rd)
 		 variable full_word : std_logic_vector(7 downto 0);
 	begin
 		 for i in 0 to 7 loop
@@ -76,4 +81,5 @@ architecture ram_arch of ram_256_byte is
 		 end if;
 	end process;
 end architecture ram_arch;
+			
 			
